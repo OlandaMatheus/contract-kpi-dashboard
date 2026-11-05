@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Contratos</title>
+<meta name="description" content="Demo com dados fictícios: prazo x consumo de contratos, vencimentos e consumo por categoria.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..800&display=swap" rel="stylesheet">
+<style>
+/* ===== Tokens: paleta de livro-razão (papel verde-acinzentado, tinta petróleo, vermelho de estorno) ===== */
+:root {
+  --papel: #EDF0EB;
+  --papel-2: #E3E8E2;
+  --tinta: #1C2B2A;
+  --tinta-2: #55655F;
+  --linha: #C6CFC8;
+  --trilho: #D3DAD4;
+  --hoje: #1C2B2A;
+  --s-acima: #A23B3B;
+  --s-acelerado: #9A6400;
+  --s-ritmo: #2F6F62;
+  --s-sub: #4D6A8A;
+  --s-encerrado: #87938E;
+  --tip-bg: #1C2B2A;
+  --tip-fg: #EDF0EB;
+  --foco: #4D6A8A;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papel: #121A19; --papel-2: #18221F; --tinta: #E2E9E5; --tinta-2: #9AABA4;
+    --linha: #2C3936; --trilho: #26322F; --hoje: #E2E9E5;
+    --s-acima: #E07A72; --s-acelerado: #D9A441; --s-ritmo: #6FB3A3; --s-sub: #8FAACB; --s-encerrado: #6E7B76;
+    --tip-bg: #E2E9E5; --tip-fg: #121A19; --foco: #8FAACB;
+  }
+}
+:root[data-theme="dark"] {
+  --papel: #121A19; --papel-2: #18221F; --tinta: #E2E9E5; --tinta-2: #9AABA4;
+  --linha: #2C3936; --trilho: #26322F; --hoje: #E2E9E5;
+  --s-acima: #E07A72; --s-acelerado: #D9A441; --s-ritmo: #6FB3A3; --s-sub: #8FAACB; --s-encerrado: #6E7B76;
+  --tip-bg: #E2E9E5; --tip-fg: #121A19; --foco: #8FAACB;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--papel); color: var(--tinta);
+  font-family: "Archivo", system-ui, sans-serif; font-variation-settings: "wdth" 100;
+  font-size: 16px; line-height: 1.5; font-feature-settings: "tnum" 1;
+}
+.pagina { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; }
+@media (min-width: 720px) { .pagina { padding: 48px 32px 80px; } }
+
+:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+
+/* ===== Cabeçalho: a largura da fonte é o elemento tipográfico (título estreito e alto) ===== */
+.titulo {
+  margin: 0; font-size: clamp(2.4rem, 7vw, 4.2rem); line-height: 0.95; font-weight: 750;
+  font-variation-settings: "wdth" 62; letter-spacing: -0.01em;
+}
+.resumo { margin: 16px 0 0; max-width: 62ch; font-size: 1.05rem; color: var(--tinta-2); }
+.resumo strong { color: var(--tinta); font-weight: 650; }
+.aviso { margin: 8px 0 0; font-size: 0.85rem; color: var(--tinta-2); }
+
+/* ===== Faixa de totais: lançamentos de razão separados por fios verticais ===== */
+.totais { display: grid; grid-template-columns: repeat(2, 1fr); margin: 32px 0 0; border-top: 2px solid var(--tinta); }
+@media (min-width: 720px) { .totais { grid-template-columns: repeat(4, 1fr); } }
+.total { padding: 14px 16px 16px 0; border-bottom: 1px solid var(--linha); }
+@media (min-width: 720px) {
+  .total { border-bottom: 0; padding-left: 16px; border-left: 1px solid var(--linha); }
+  .total:first-child { border-left: 0; padding-left: 0; }
+}
+.total dt { font-size: 0.85rem; color: var(--tinta-2); }
+.total dd { margin: 2px 0 0; font-size: 1.9rem; font-weight: 650; font-variation-settings: "wdth" 75; line-height: 1.1; }
+.total dd small { font-size: 0.9rem; font-weight: 400; color: var(--tinta-2); font-variation-settings: "wdth" 100; }
+
+/* ===== Seções ===== */
+section { margin-top: 56px; }
+.secao-titulo { margin: 0; font-size: 1.5rem; font-weight: 700; font-variation-settings: "wdth" 75; }
+.secao-texto { margin: 6px 0 0; max-width: 66ch; color: var(--tinta-2); }
+
+/* ===== Filtros ===== */
+.filtros { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 20px 0 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font: inherit; font-size: 0.88rem; padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--linha); background: transparent; color: var(--tinta);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.chip[aria-pressed="true"] { background: var(--tinta); color: var(--papel); border-color: var(--tinta); }
+.chip .ponto { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.chip .qtd { opacity: 0.7; }
+.campo { display: inline-flex; align-items: center; gap: 6px; font-size: 0.88rem; color: var(--tinta-2); }
+.campo select {
+  font: inherit; color: var(--tinta); background: var(--papel); border: 1px solid var(--linha);
+  border-radius: 6px; padding: 4px 8px;
+}
+
+/* ===== Linha do tempo (prazo x consumo): o elemento principal ===== */
+.legenda { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 0.85rem; color: var(--tinta-2); margin: 4px 0 16px; }
+.legenda span { display: inline-flex; align-items: center; gap: 6px; }
+.amostra { display: inline-block; width: 22px; height: 8px; border-radius: 2px; }
+
+.eixo, .linha-contrato { display: grid; grid-template-columns: 1fr; }
+@media (min-width: 760px) {
+  .eixo, .linha-contrato { grid-template-columns: 230px 1fr 64px; column-gap: 16px; align-items: center; }
+}
+.eixo { position: sticky; top: 0; z-index: 2; background: var(--papel); padding: 6px 0; border-bottom: 1px solid var(--linha); }
+.eixo .rotulos { position: relative; height: 18px; font-size: 0.75rem; color: var(--tinta-2); }
+.eixo .rotulos span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.eixo .rotulos .rot-hoje { top: -14px; color: var(--tinta); font-weight: 650; }
+.eixo { padding-top: 18px; }
+.eixo .vazio { display: none; }
+@media (min-width: 760px) { .eixo .vazio { display: block; } }
+
+.lista { position: relative; }
+.linha-contrato { padding: 9px 0; border-bottom: 1px solid var(--linha); cursor: default; }
+.linha-contrato:hover, .linha-contrato:focus-visible { background: var(--papel-2); }
+.id { font-size: 0.9rem; line-height: 1.25; min-width: 0; }
+.id b { font-weight: 650; }
+.id .forn { color: var(--tinta-2); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pct { font-size: 0.9rem; font-weight: 650; text-align: right; font-variation-settings: "wdth" 75; display: none; }
+@media (min-width: 760px) { .pct { display: block; } }
+.pct-mobile { font-weight: 650; }
+@media (min-width: 760px) { .pct-mobile { display: none; } }
+
+.pista { position: relative; height: 22px; margin-top: 6px; }
+@media (min-width: 760px) { .pista { margin-top: 0; } }
+.vigencia { position: absolute; top: 7px; height: 8px; background: var(--trilho); border-radius: 2px; }
+.consumo { position: absolute; top: 7px; height: 8px; border-radius: 2px 0 0 2px; }
+.estouro { position: absolute; top: 4px; height: 14px; border-radius: 0 2px 2px 0; background: var(--s-acima); }
+.marca-hoje { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px dashed var(--hoje); opacity: 0.55; pointer-events: none; }
+.vazio-lista { padding: 24px 0; color: var(--tinta-2); }
+
+/* ===== Categoria ===== */
+.categorias { margin-top: 20px; display: grid; gap: 14px; max-width: 760px; }
+.cat { display: grid; grid-template-columns: 1fr; gap: 4px; }
+@media (min-width: 640px) { .cat { grid-template-columns: 190px 1fr; column-gap: 16px; align-items: center; } }
+.cat-nome { font-size: 0.92rem; }
+.cat-barras { position: relative; height: 18px; }
+.cat-contratado { position: absolute; top: 0; height: 18px; background: var(--trilho); border-radius: 2px; }
+.cat-consumido { position: absolute; top: 5px; height: 8px; background: var(--s-ritmo); border-radius: 2px; }
+.cat-valor { font-size: 0.85rem; color: var(--tinta-2); grid-column: 1 / -1; }
+@media (min-width: 640px) { .cat-valor { grid-column: 2; } }
+
+/* ===== Tabela ===== */
+.tabela-caixa { margin-top: 20px; overflow-x: auto; border-top: 2px solid var(--tinta); }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 820px; }
+th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--linha); white-space: nowrap; }
+th { font-weight: 650; font-size: 0.85rem; color: var(--tinta-2); }
+th button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+th[aria-sort="ascending"] button::after { content: " ▲"; font-size: 0.7em; }
+th[aria-sort="descending"] button::after { content: " ▼"; font-size: 0.7em; }
+td.num, th.num { text-align: right; }
+.situacao { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ===== Tooltip único, usado na linha do tempo e nas categorias ===== */
+#tip {
+  position: fixed; z-index: 10; pointer-events: none; max-width: 280px;
+  background: var(--tip-bg); color: var(--tip-fg); border-radius: 6px; padding: 10px 12px;
+  font-size: 0.84rem; line-height: 1.4; opacity: 0; transition: opacity 0.12s;
+}
+#tip.visivel { opacity: 1; }
+#tip b { display: block; font-size: 0.9rem; margin-bottom: 4px; }
+#tip .lin { display: flex; justify-content: space-between; gap: 16px; }
+@media (prefers-reduced-motion: reduce) { #tip { transition: none; } }
+
+footer { margin-top: 64px; padding-top: 16px; border-top: 1px solid var(--linha); font-size: 0.85rem; color: var(--tinta-2); }
+footer a { color: inherit; }
+</style>
+</head>
+<body>
+<main class="pagina">
+  <header>
+    <h1 class="titulo">Prazo e consumo<br>dos contratos</h1>
+    <p class="resumo" id="resumo"></p>
+    <p class="aviso">Demonstração com dados fictícios. Nenhuma empresa ou fornecedor real.</p>
+  </header>
+
+  <dl class="totais" id="totais"></dl>
+
+  <section aria-labelledby="t-linha">
+    <h2 class="secao-titulo" id="t-linha">Cada contrato na sua vigência</h2>
+    <p class="secao-texto">A barra clara é o prazo do contrato; a escura é quanto do valor já foi consumido, na mesma escala. Se a barra escura passa da linha de hoje, o consumo está à frente do prazo e o saldo pode acabar antes do fim.</p>
+
+    <div class="filtros">
+      <div class="chips" id="chips" role="group" aria-label="Filtrar por situação"></div>
+      <label class="campo">Categoria
+        <select id="f-categoria"><option value="">Todas</option></select>
+      </label>
+      <label class="campo">Ordenar por
+        <select id="f-ordem">
+          <option value="fim">Data de vencimento</option>
+          <option value="desvio">Consumo à frente do prazo</option>
+          <option value="valor">Valor contratado</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="legenda" aria-hidden="true">
+      <span><i class="amostra" style="background:var(--trilho)"></i>Vigência</span>
+      <span><i class="amostra" style="background:var(--s-ritmo)"></i>Consumido (cor pela situação)</span>
+      <span><i class="amostra" style="background:var(--s-acima);height:12px"></i>Acima do contratado</span>
+      <span><i class="amostra" style="border-left:1.5px dashed var(--hoje);width:2px;height:14px;border-radius:0"></i>Data de referência</span>
+    </div>
+
+    <div class="eixo" aria-hidden="true">
+      <div class="vazio"></div>
+      <div class="rotulos" id="eixo"></div>
+      <div class="vazio"></div>
+    </div>
+    <div class="lista" id="lista"></div>
+  </section>
+
+  <section aria-labelledby="t-cat">
+    <h2 class="secao-titulo" id="t-cat">Consumo por categoria</h2>
+    <p class="secao-texto">Valor contratado (barra larga) e consumido (barra interna) dos contratos em vigência.</p>
+    <div class="categorias" id="categorias"></div>
+  </section>
+
+  <section aria-labelledby="t-tab">
+    <h2 class="secao-titulo" id="t-tab">Todos os contratos</h2>
+    <p class="secao-texto">Clique no nome de uma coluna para ordenar. Os filtros de cima também valem aqui.</p>
+    <div class="tabela-caixa">
+      <table>
+        <thead><tr id="cabecalho"></tr></thead>
+        <tbody id="corpo"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Projeto de portfólio de Matheus Olanda. Base gerada por <code>scripts/gerar_base.py</code>.
+    <a href="https://github.com/OlandaMatheus/contract-kpi-dashboard">Código no GitHub</a>
+  </footer>
+</main>
+
+<div id="tip" role="tooltip"></div>
+
+<script src="data/contratos.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ===== Base e data de referência =====
+  // PONTO CRÍTICO: a data de referência vem da base, não do relógio do navegador,
+  // para os indicadores baterem com a extração que gerou os números
+  const BASE = window.BASE_CONTRATOS;
+  const REF = parseData(BASE.data_referencia);
+  const DIA = 86400000;
+
+  // Limites de classificação (em pontos percentuais de diferença entre consumo e prazo)
+  const LIMITE_ACELERADO = 0.15;
+  const LIMITE_SUBUTILIZADO = 0.25;
+
+  const SITUACOES = [
+    { id: "acima", nome: "Acima do contratado", cor: "var(--s-acima)" },
+    { id: "acelerado", nome: "Consumo acelerado", cor: "var(--s-acelerado)" },
+    { id: "ritmo", nome: "No ritmo", cor: "var(--s-ritmo)" },
+    { id: "sub", nome: "Subutilizado", cor: "var(--s-sub)" },
+    { id: "encerrado", nome: "Encerrado", cor: "var(--s-encerrado)" },
+  ];
+  const SIT = Object.fromEntries(SITUACOES.map(s => [s.id, s]));
+
+  function parseData(iso) { const [a, m, d] = iso.split("-").map(Number); return new Date(a, m - 1, d); }
+
+  const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  // Acima de 100% arredonda para cima: "100%" em vermelho confundiria quem lê
+  const pct = v => (v > 1 ? Math.ceil(v * 100) : Math.round(v * 100)) + "%";
+  const dataBR = d => d.toLocaleDateString("pt-BR");
+  function compacto(v) {
+    if (Math.abs(v) >= 1e6) return "R$ " + (v / 1e6).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " mi";
+    if (Math.abs(v) >= 1e3) return "R$ " + Math.round(v / 1e3).toLocaleString("pt-BR") + " mil";
+    return moeda.format(v);
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  // ===== Enriquecimento: % de prazo, % de consumo e situação =====
+  const contratos = BASE.contratos.map(c => {
+    const inicio = parseData(c.inicio), fim = parseData(c.fim);
+    const prazoTotal = (fim - inicio) / DIA + 1;
+    const decorrido = Math.min(Math.max((REF - inicio) / DIA, 0), prazoTotal);
+    const pPrazo = decorrido / prazoTotal;
+    const pConsumo = c.valor_contratado ? c.valor_consumido / c.valor_contratado : 0;
+    const diasFim = Math.round((fim - REF) / DIA);
+
+    // Ordem importa: encerrado primeiro, depois estouro, depois ritmo
+    let sit;
+    if (diasFim < 0) sit = "encerrado";
+    else if (pConsumo > 1) sit = "acima";
+    else if (pConsumo - pPrazo > LIMITE_ACELERADO) sit = "acelerado";
+    else if (pPrazo - pConsumo > LIMITE_SUBUTILIZADO) sit = "sub";
+    else sit = "ritmo";
+
+    return Object.assign({}, c, {
+      inicioD: inicio, fimD: fim, pPrazo, pConsumo, diasFim, sit,
+      desvio: pConsumo - pPrazo, saldo: c.valor_contratado - c.valor_consumido,
+    });
+  });
+  const vigentes = contratos.filter(c => c.sit !== "encerrado");
+
+  // ===== Estado dos filtros =====
+  const estado = { sit: "", categoria: "", ordem: "fim", colTabela: "fimD", dirTabela: 1 };
+
+  function filtrados() {
+    return contratos.filter(c =>
+      (!estado.sit || c.sit === estado.sit) && (!estado.categoria || c.categoria === estado.categoria));
+  }
+
+  // ===== Resumo e totais (sempre sobre os vigentes, independentes do filtro) =====
+  function desenharResumo() {
+    const contratado = vigentes.reduce((s, c) => s + c.valor_contratado, 0);
+    const consumido = vigentes.reduce((s, c) => s + c.valor_consumido, 0);
+    const vence90 = vigentes.filter(c => c.diasFim <= 90);
+    const risco = vigentes.filter(c => c.sit === "acima" || c.sit === "acelerado");
+
+    document.getElementById("resumo").innerHTML =
+      `Em ${dataBR(REF)}, <strong>${vigentes.length} contratos</strong> estão em vigência. ` +
+      `<strong>${risco.length}</strong> consomem mais rápido do que o prazo corre e ` +
+      `<strong>${vence90.length}</strong> vencem nos próximos 90 dias.`;
+
+    const itens = [
+      ["Valor contratado", compacto(contratado), ""],
+      ["Consumido", compacto(consumido), pct(consumido / contratado) + " do total"],
+      ["Saldo a consumir", compacto(contratado - consumido), ""],
+      ["Vencem em 90 dias", String(vence90.length), compacto(vence90.reduce((s, c) => s + c.saldo, 0)) + " de saldo"],
+    ];
+    document.getElementById("totais").innerHTML = itens.map(([t, v, s]) =>
+      `<div class="total"><dt>${t}</dt><dd>${v}${s ? ` <small>${s}</small>` : ""}</dd></div>`).join("");
+  }
+
+  // ===== Chips de situação (com contagem) e lista de categorias =====
+  function desenharFiltros() {
+    const cont = id => contratos.filter(c => !id || c.sit === id).length;
+    const chips = [{ id: "", nome: "Todos" }].concat(SITUACOES);
+    const el = document.getElementById("chips");
+    el.innerHTML = chips.map(s =>
+      `<button type="button" class="chip" data-sit="${s.id}" aria-pressed="${estado.sit === s.id}">` +
+      (s.cor ? `<i class="ponto" style="background:${s.cor}"></i>` : "") +
+      `${s.nome} <span class="qtd">${cont(s.id)}</span></button>`).join("");
+    el.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+      estado.sit = b.dataset.sit; desenharFiltros(); desenharTudo();
+    }));
+  }
+  const selCat = document.getElementById("f-categoria");
+  [...new Set(contratos.map(c => c.categoria))].sort().forEach(n => selCat.add(new Option(n, n)));
+  selCat.addEventListener("change", e => { estado.categoria = e.target.value; desenharTudo(); });
+  document.getElementById("f-ordem").addEventListener("change", e => { estado.ordem = e.target.value; desenharLinhaTempo(); });
+
+  // ===== Escala de tempo da linha do tempo =====
+  const tMin = new Date(Math.min(...contratos.map(c => c.inicioD)));
+  const tMax = new Date(Math.max(...contratos.map(c => c.fimD)));
+  const eixoIni = new Date(tMin.getFullYear(), tMin.getMonth() < 6 ? 0 : 6, 1);
+  const eixoFim = new Date(tMax.getFullYear(), tMax.getMonth() < 6 ? 6 : 12, 1);
+  const x = d => ((d - eixoIni) / (eixoFim - eixoIni)) * 100; // posição em % da largura
+
+  function desenharEixo() {
+    const meses = ["jan", "jul"];
+    const estreito = window.matchMedia("(max-width: 520px)").matches;
+    let html = "";
+    for (let d = new Date(eixoIni); d <= eixoFim; d.setMonth(d.getMonth() + 6)) {
+      if (estreito && d.getMonth() !== 0) continue; // no celular, só os anos
+      const rot = estreito ? d.getFullYear() : `${meses[d.getMonth() / 6]} ${String(d.getFullYear()).slice(2)}`;
+      const pos = x(d);
+      if (pos > 2 && pos < 98) html += `<span style="left:${pos}%">${rot}</span>`;
+    }
+    html += `<span class="rot-hoje" style="left:${x(REF)}%">hoje</span>`;
+    document.getElementById("eixo").innerHTML = html;
+  }
+
+  function desenharLinhaTempo() {
+    const ordens = {
+      // Encerrados vão para o fim da lista: o foco é o que ainda dá para gerir
+      fim: (a, b) => (a.sit === "encerrado") - (b.sit === "encerrado") || a.fimD - b.fimD,
+      desvio: (a, b) => b.desvio - a.desvio,
+      valor: (a, b) => b.valor_contratado - a.valor_contratado,
+    };
+    const lista = filtrados().sort(ordens[estado.ordem]);
+    const el = document.getElementById("lista");
+    if (!lista.length) {
+      el.innerHTML = `<p class="vazio-lista">Nenhum contrato com esses filtros. Escolha outra situação ou categoria.</p>`;
+      return;
+    }
+    const xHoje = x(REF);
+    el.innerHTML = lista.map((c, i) => {
+      const ini = x(c.inicioD), larg = x(c.fimD) - ini;
+      const cons = Math.min(c.pConsumo, 1) * larg;
+      const excesso = Math.max(c.pConsumo - 1, 0) * larg;
+      const cor = SIT[c.sit].cor;
+      return `<div class="linha-contrato" tabindex="0" data-i="${contratos.indexOf(c)}">
+        <div class="id"><b>${c.contrato}</b> <span class="pct-mobile" style="color:${cor}">${pct(c.pConsumo)}</span>
+          <span class="forn">${esc(c.fornecedor)}</span></div>
+        <div class="pista">
+          <div class="vigencia" style="left:${ini}%;width:${larg}%"></div>
+          <div class="consumo" style="left:${ini}%;width:${cons}%;background:${cor}"></div>
+          ${excesso ? `<div class="estouro" style="left:${ini + larg}%;width:${Math.max(excesso, 0.6)}%"></div>` : ""}
+          <div class="marca-hoje" style="left:${xHoje}%"></div>
+        </div>
+        <div class="pct" style="color:${cor}">${pct(c.pConsumo)}</div>
+      </div>`;
+    }).join("");
+  }
+
+  // ===== Categorias (vigentes, respeitando o filtro de situação) =====
+  function desenharCategorias() {
+    const base = vigentes.filter(c => !estado.sit || c.sit === estado.sit);
+    const grupos = {};
+    base.forEach(c => {
+      const g = grupos[c.categoria] || (grupos[c.categoria] = { contratado: 0, consumido: 0, qtd: 0 });
+      g.contratado += c.valor_contratado; g.consumido += c.valor_consumido; g.qtd++;
+    });
+    const linhas = Object.entries(grupos).sort((a, b) => b[1].contratado - a[1].contratado);
+    const maior = Math.max(1, ...linhas.map(([, g]) => g.contratado));
+    const el = document.getElementById("categorias");
+    if (!linhas.length) { el.innerHTML = `<p class="vazio-lista">Nenhum contrato em vigência nessa situação.</p>`; return; }
+    el.innerHTML = linhas.map(([nome, g]) => `
+      <div class="cat" tabindex="0" data-cat="${esc(nome)}" style="${estado.categoria && estado.categoria !== nome ? "opacity:.45" : ""}">
+        <div class="cat-nome">${esc(nome)}</div>
+        <div class="cat-barras">
+          <div class="cat-contratado" style="width:${g.contratado / maior * 100}%"></div>
+          <div class="cat-consumido" style="width:${Math.min(g.consumido, g.contratado) / maior * 100}%"></div>
+        </div>
+        <div class="cat-valor">${compacto(g.consumido)} de ${compacto(g.contratado)} (${pct(g.consumido / g.contratado)})</div>
+      </div>`).join("");
+    el._grupos = grupos;
+  }
+
+  // ===== Tabela ordenável =====
+  const COLUNAS = [
+    ["contrato", "Contrato", ""], ["fornecedor", "Fornecedor", ""], ["categoria", "Categoria", ""],
+    ["fimD", "Vencimento", ""], ["valor_contratado", "Contratado", "num"], ["valor_consumido", "Consumido", "num"],
+    ["pConsumo", "% consumo", "num"], ["pPrazo", "% prazo", "num"], ["sit", "Situação", ""],
+  ];
+  function desenharTabela() {
+    document.getElementById("cabecalho").innerHTML = COLUNAS.map(([k, t, cls]) => {
+      const sort = estado.colTabela === k ? (estado.dirTabela > 0 ? "ascending" : "descending") : "none";
+      return `<th class="${cls}" aria-sort="${sort}"><button type="button" data-col="${k}">${t}</button></th>`;
+    }).join("");
+    document.querySelectorAll("#cabecalho button").forEach(b => b.addEventListener("click", () => {
+      const k = b.dataset.col;
+      estado.dirTabela = estado.colTabela === k ? -estado.dirTabela : 1;
+      estado.colTabela = k; desenharTabela();
+    }));
+    const k = estado.colTabela, dir = estado.dirTabela;
+    const linhas = filtrados().sort((a, b) => {
+      const va = a[k], vb = b[k];
+      return (typeof va === "string" ? va.localeCompare(vb, "pt-BR") : va - vb) * dir;
+    });
+    document.getElementById("corpo").innerHTML = linhas.map(c => `<tr>
+      <td>${c.contrato}</td><td>${esc(c.fornecedor)}</td><td>${esc(c.categoria)}</td><td>${dataBR(c.fimD)}</td>
+      <td class="num">${moeda.format(c.valor_contratado)}</td><td class="num">${moeda.format(c.valor_consumido)}</td>
+      <td class="num">${pct(c.pConsumo)}</td><td class="num">${pct(c.pPrazo)}</td>
+      <td><span class="situacao"><i class="ponto" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:${SIT[c.sit].cor}"></i>${SIT[c.sit].nome}</span></td>
+    </tr>`).join("");
+  }
+
+  // ===== Tooltip compartilhado =====
+  const tip = document.getElementById("tip");
+  function mostrarTip(html, alvoX, alvoY) {
+    tip.innerHTML = html; tip.classList.add("visivel");
+    const r = tip.getBoundingClientRect();
+    let left = alvoX + 14, top = alvoY + 14;
+    if (left + r.width > window.innerWidth - 8) left = alvoX - r.width - 14;
+    if (top + r.height > window.innerHeight - 8) top = alvoY - r.height - 14;
+    tip.style.left = Math.max(8, left) + "px"; tip.style.top = Math.max(8, top) + "px";
+  }
+  const esconderTip = () => tip.classList.remove("visivel");
+  const lin = (a, b) => `<span class="lin"><span>${a}</span><span>${b}</span></span>`;
+
+  function conteudoContrato(c) {
+    const prazo = c.diasFim < 0 ? `venceu há ${-c.diasFim} dias` : `vence em ${c.diasFim} dias`;
+    return `<b>${c.contrato}, ${esc(c.fornecedor)}</b>` +
+      lin("Situação", SIT[c.sit].nome) + lin("Vigência", `${dataBR(c.inicioD)} a ${dataBR(c.fimD)}`) +
+      lin("Prazo decorrido", pct(c.pPrazo)) + lin("Consumido", `${pct(c.pConsumo)} (${compacto(c.valor_consumido)})`) +
+      lin("Saldo", compacto(c.saldo)) + lin("Vencimento", prazo);
+  }
+  function conteudoCategoria(nome, g) {
+    return `<b>${esc(nome)}</b>` + lin("Contratos vigentes", g.qtd) + lin("Contratado", compacto(g.contratado)) +
+      lin("Consumido", `${compacto(g.consumido)} (${pct(g.consumido / g.contratado)})`) +
+      lin("Saldo", compacto(g.contratado - g.consumido));
+  }
+
+  // Mesmo comportamento para mouse, toque e teclado nos dois gráficos
+  function ligarTip(container, seletor, montar) {
+    const abrir = (alvo, px, py) => { const h = montar(alvo); if (h) mostrarTip(h, px, py); };
+    container.addEventListener("mousemove", e => {
+      const alvo = e.target.closest(seletor); alvo ? abrir(alvo, e.clientX, e.clientY) : esconderTip();
+    });
+    container.addEventListener("mouseleave", esconderTip);
+    // Toque no celular: abre no ponto tocado
+    container.addEventListener("click", e => {
+      const alvo = e.target.closest(seletor); alvo ? abrir(alvo, e.clientX, e.clientY) : esconderTip();
+    });
+    container.addEventListener("focusin", e => {
+      const alvo = e.target.closest(seletor); if (!alvo) return;
+      const r = alvo.getBoundingClientRect(); abrir(alvo, r.left + r.width / 2, r.bottom - 6);
+    });
+    container.addEventListener("focusout", esconderTip);
+  }
+  ligarTip(document.getElementById("lista"), ".linha-contrato", el => conteudoContrato(contratos[el.dataset.i]));
+  const elCat = document.getElementById("categorias");
+  ligarTip(elCat, ".cat", el => elCat._grupos && conteudoCategoria(el.dataset.cat, elCat._grupos[el.dataset.cat]));
+  window.addEventListener("scroll", esconderTip, { passive: true });
+
+  // ===== Render =====
+  function desenharTudo() { desenharLinhaTempo(); desenharCategorias(); desenharTabela(); }
+  desenharResumo(); desenharFiltros(); desenharEixo(); desenharTudo();
+  window.addEventListener("resize", desenharEixo);
+})();
+</script>
+</body>
+</html>
