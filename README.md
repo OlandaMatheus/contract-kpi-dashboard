@@ -2,6 +2,8 @@
 
 Painel de acompanhamento de contratos que cruza **prazo decorrido** com **valor consumido** para mostrar, em uma única tela, quais contratos vão estourar o saldo antes do fim da vigência e quais estão parados.
 
+[![Linha do tempo de prazo x consumo dos contratos](og-image.jpg)](https://olandamatheus.github.io/contract-kpi-dashboard/)
+
 **[Abrir a demonstração](https://olandamatheus.github.io/contract-kpi-dashboard/)**
 
 > Todos os dados são **fictícios**, gerados por script. Nenhuma empresa, fornecedor ou contrato real.
