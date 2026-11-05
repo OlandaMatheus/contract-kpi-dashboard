@@ -1,0 +1,21 @@
+# Arquivos de trabalho e dados reais nunca devem ir para o repositório
+*.xlsx
+*.xlsm
+*.xls
+*.pbix
+*.pbit
+~$*
+
+# Credenciais e configurações locais
+.env
+credentials.json
+token.json
+*.key
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
